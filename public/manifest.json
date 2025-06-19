@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Verified React Weather Extension",
+  "version": "1.0",
+  "description": "100% 실행되는 Vite + React + 기상청 확장 프로그램",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["geolocation"]
+}
