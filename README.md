@@ -19,6 +19,8 @@
 
 1️⃣ [공공데이터포털](https://www.data.go.kr/) 가입  
 2️⃣ 아래 3개를 각각 신청  
+   [기상청_단기예보 ((구)_동네예보) 조회서비스](https://www.data.go.kr/data/15084084/openapi.do) 여기서
+
    - 초단기 실황조회 서비스 (UltraSrtNcst)
    - 초단기 예보조회 서비스 (UltraSrtFcst)
    - 단기 예보조회 서비스 (VilageFcst)  
