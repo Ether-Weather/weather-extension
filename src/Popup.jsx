@@ -124,7 +124,7 @@ export default function Popup() {
 
 
       // 5) URL 구성 (좌표는 너의 x,y 사용)
-      //const serviceKey = "1IbjiCFGTRst9TKidkbE8t%2BCjIhjUXgbLsMMlvJJ6w92nsv2dcSOx5pV6n7nWzF21p26hHKIzxzenn0ljsouhQ%3D%3D";
+      
       const serviceKey = import.meta.env.VITE_API_KEY;
 
 
