@@ -31,8 +31,17 @@ function ptyType(v) {
 }
 
 export default function Popup() {
+  const [skyNow, setSkyNow] = useState("-");
+  const [skyForecast, setSkyForecast] = useState("-");
+  const [tmpNow, setTmpNow] = useState("-");
+  const [tmpForecast, setTmpForecast] = useState("-");
+  const [ptyNow, setPtyNow] = useState("-");
+  const [popForecast, setPopForecast] = useState("-");
+  const [weather, setWeather] = useState("");
+
+
+
   const [status, setStatus] = useState('위치 확인 중...');
-  const [weather, setWeather] = useState('');
   const [loading , setLoading] =useState (true);
 
   useEffect(() => {
@@ -95,11 +104,29 @@ export default function Popup() {
         vilage_hour = 23;
       }
 
+      if (announceHours.includes(nowHour)) {
+        const idx = announceHours.indexOf(nowHour);
+        if (idx === 0) {
+          const yest = new Date(now);
+          yest.setDate(now.getDate() - 1);
+          const yyyy = yest.getFullYear();
+          const mm = String(yest.getMonth() + 1).padStart(2, '0');
+          const dd = String(yest.getDate()).padStart(2, '0');
+          vilage_base_date = `${yyyy}${mm}${dd}`;
+          vilage_hour = 23;
+        } else {
+          // 나머지는 이전 발표시각
+          vilage_hour = announceHours[idx - 1];
+        }
+      }
+
       const vilage_base_time = `${String(vilage_hour).padStart(2, '0')}00`;
 
 
       // 5) URL 구성 (좌표는 너의 x,y 사용)
-      const serviceKey = "1IbjiCFGTRst9TKidkbE8t%2BCjIhjUXgbLsMMlvJJ6w92nsv2dcSOx5pV6n7nWzF21p26hHKIzxzenn0ljsouhQ%3D%3D";
+      //const serviceKey = "1IbjiCFGTRst9TKidkbE8t%2BCjIhjUXgbLsMMlvJJ6w92nsv2dcSOx5pV6n7nWzF21p26hHKIzxzenn0ljsouhQ%3D%3D";
+      const serviceKey = import.meta.env.VITE_API_KEY;
+
 
       const ncstUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${serviceKey}&numOfRows=10&pageNo=1&dataType=JSON&base_date=${base_date}&base_time=${ncst_base_time}&nx=${x}&ny=${y}`;      
       const fcstUrl = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${serviceKey}&numOfRows=100&pageNo=1&dataType=JSON&base_date=${base_date}&base_time=${fcst_base_time}&nx=${x}&ny=${y}`;      
@@ -119,9 +146,9 @@ export default function Popup() {
           fetch(vilageUrl).then(res => res.json()),
         ]);
       
-        const ncstItems = ncstRes.response.body.items.item;
-        const fcstItems = fcstRes.response.body.items.item;
-        const vilageItems = vilageRes?.response?.body?.items?.item || []
+        const ncstItems = ncstRes.response.body.items.item;  // 실황
+        const fcstItems = fcstRes.response.body.items.item;  // 초단기
+        const vilageItems = vilageRes?.response?.body?.items?.item || []  // 단기
         
 
       
@@ -131,8 +158,13 @@ export default function Popup() {
 // URL 만들기도 OK
 
         // 실황
-        const skyNcst = ncstItems.find(i => i.category === "SKY")?.obsrValue ?? "-";
-        const ptyNcst = ncstItems.find(i => i.category === "PTY")?.obsrValue ?? "-";
+        const skyNcst = ncstItems.find(i => i.category === "SKY")?.obsrValue ?? "-"; //하늘 상태
+        const ptyNcst = ncstItems.find(i => i.category === "PTY")?.obsrValue ?? "-"; // 강수형태
+        const tmpNcst = ncstItems.find(i => i.category === "TMP")?.obsrValue ?? "-"; // 온도
+        const rehNcst = ncstItems.find(i => i.category === "REH")?.obsrValue ?? "-"; //습도
+        const wsdNcst = ncstItems.find(i => i.category === "WSD")?.obsrValue ?? "-"; // 풍속
+
+
       
         // 예보 pop 을 찾는 로직
         const futureDate = `${future.getFullYear()}${String(future.getMonth() + 1).padStart(2, '0')}${String(future.getDate()).padStart(2, '0')}`;
@@ -141,13 +173,13 @@ export default function Popup() {
 
 
         const nextTime = fcstItems
-          .filter(i => i.category === "PTY" && i.fcstTime >= futureHHMM)
-          .map(i => i.fcstTime)
-          .sort()[0];
+          .filter(i => i.category === "PTY" && `${i.fcstDate}${i.fcstTime}` >= futureDateTime)
+          .map(i => `${i.fcstDate}${i.fcstTime}`)
+          .sort()[0]?.slice(-4);  // 시간만 추출
       
-        const skyFcst = fcstItems.find(i => i.category === "SKY" && i.fcstTime === nextTime)?.fcstValue ?? "-";
-        const ptyFcst = fcstItems.find(i => i.category === "PTY" && i.fcstTime === nextTime)?.fcstValue ?? "-";
-      
+          const skyFcst = fcstItems.find(i => i.category === "SKY" && `${i.fcstDate}${i.fcstTime}` >= futureDateTime)?.fcstValue ?? "-";
+          const ptyFcst = fcstItems.find(i => i.category === "PTY" && `${i.fcstDate}${i.fcstTime}` >= futureDateTime)?.fcstValue ?? "-";
+          const tmpFcst = fcstItems.find(i => i.category === "T1H" && `${i.fcstDate}${i.fcstTime}` >= futureDateTime)?.fcstValue ?? "-";
         // 예보: POP
 
         //const nextPopItem = popItems.find(i => i.fcstTime >= futureHHMM) || popItems.slice(-1)[0];  // pop 예보중 지금 시각 보다 크거나 같은 fcstTime 을 찾으라
@@ -162,15 +194,24 @@ export default function Popup() {
           i => `${i.fcstDate}${i.fcstTime}` <= futureDateTime
         ) || popItems[0];
 
-        const popFcst = targetPopItem?.fcstValue ?? "-";
+        const popFcst = targetPopItem?.fcstValue ?? "-"; //강수 확률 단기
         const popTime = targetPopItem?.fcstTime ?? "-";
         const popTimeLabel = `${popTime.slice(0, 2)}:${popTime.slice(2, 4)}`;
         
 
         console.log("강수확률 :", popFcst);
       
-        setWeather(`🌤️ 실황: ${skyType(skyNcst)} / 강수: ${ptyType(ptyNcst)}
-        🌈 예보: ${skyType(skyFcst)} / 강수: ${ptyType(ptyFcst)} / 🌈 강수확률: ${popFcst}% (예보 시각: ${popTimeLabel})`);
+        setWeather(
+          `🌤️ 현재 상태\n` +
+          `- 하늘: ${skyType(skyFcst)}\n` +
+          `- 강수형태: ${ptyType(ptyNcst)}\n` +
+          `- 기온: ${tmpFcst}°C\n` +
+          `- 풍속: ${wsdNcst} m/s\n` +
+          `- 습도: ${rehNcst}%\n\n` +'\n\n\n'+
+          `🌈 예보 (3시간 후)\n` +
+          `- 강수확률: ${popFcst}% (예보시각: ${popTimeLabel})`
+        );
+        
       
       } catch (err) {
         console.error(err);
@@ -183,7 +224,7 @@ export default function Popup() {
   }, []);
 
   return (
-    <div style={{ padding: '1rem', minWidth: '250px' }}>
+    <div style={{ padding: '1rem', minWidth: '250px'}}>
       <h2>내 위치 날씨</h2>
       <p>{status}</p>
       <p>{weather}</p>
